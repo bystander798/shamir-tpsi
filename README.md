@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Shamir TPSI
 
 本仓库是一个阈值私有集合交集计算（Threshold Private Set Intersection，简称 TPSI）原型，
@@ -164,3 +165,7 @@ index取值如下：
 - OpenSSL 头文件缺失：安装 `libssl-dev` 或对应平台的开发包。
 - Windows 平台：测试与基准依赖 `fork/exec/waitpid`，建议在 WSL2 或 Linux/macOS 环境运行。
 
+=======
+# shamir-tpsi
+shamir-tpsi
+>>>>>>> fc2f3e3969afd9702445d594ab796690e10489f6
