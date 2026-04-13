@@ -198,6 +198,15 @@ void reduce_half_gcd(NTL::ZZ_pX &r0,
                      long q_bound,
                      long e_bound,
                      const HalfGcdTunables &tunables) {
+    // Ensure deg(r0) >= deg(r1) initially so that the Half-GCD fast path
+    // (XHalfGCD) is entered immediately rather than the O(n²) classical
+    // fallback.  When the two polynomials have equal degree the algorithm
+    // would otherwise iterate classical_step O(n) times before delta > 0.
+    if (NTL::deg(r0) < NTL::deg(r1)) {
+        std::swap(r0, r1);
+        std::swap(t0, t1);
+    }
+
     NTL::ZZ_pXMatrix transform;
     NTL::ZZ_pX tmp0;
     NTL::ZZ_pX tmp1;

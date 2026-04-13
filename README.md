@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Shamir TPSI
 
 本仓库是一个阈值私有集合交集计算（Threshold Private Set Intersection，简称 TPSI）原型，
@@ -126,18 +125,22 @@ sender 6
 各阶段耗时（掷币/离线/在线）、RSS 统计，以及总通信字节数。
 
 ## 基准测试（Benchmarks）
-平衡模型下运行：
+
+### 平衡模型测试
+集合大小取 2 的幂次，发送方与接收方规模相等：
 ```bash
 ./build/benchmarks/tpsi_bench <set_size_exponent> <threshold_ratio>
 # 例如：集合规模 = 2^16，阈值 = 0.9 * 集合规模
 ./build/benchmarks/tpsi_bench 16 0.9
 ```
-非平衡模型下运行：
+### 非平衡模型测试
+接收方与发送方集合规模独立设定：
 ```bash
-./build/benchmarks/tpsi_bench <receiver_set_size_exponent> <sender_set_size_exponent>
+./build/benchmarks/tpsi_bench <receiver_set_size> <sender_set_size>
 # 例如：接收方集合规模 = 100，发送方集合规模 = 1000
 ./build/benchmarks/tpsi_bench 100 1000
 ```
+
 该基准程序会在内部启动 `tpsi_receiver` 与 `tpsi_sender`，
 按阶段采集耗时与通信量，并输出简明汇总。
 
@@ -151,6 +154,7 @@ index取值如下：
 - index=2：验证rOLE功能。
 - index=3：验证RSS重构功能。
 - index=4：验证整体协议功能。
+
 ## Front-End Highlights
 - Dataset 管理 – CSV/JSON 上传、客户端解析预览（元素数量/去重/样本片段），同步保存到后端。
 - 求交申请（接收方） – 选择自有/对端数据集、查看摘要、配置阈值与模数，提交后可在审批中心与任务页追踪状态。
@@ -164,8 +168,3 @@ index取值如下：
 - CMake 找不到 NTL/FLINT：请安装 `libntl-dev`、`libflint-dev`（或通过 Homebrew 安装 `ntl`/`flint`）。未找到 FLINT 时会自动回退到 NTL 实现。
 - OpenSSL 头文件缺失：安装 `libssl-dev` 或对应平台的开发包。
 - Windows 平台：测试与基准依赖 `fork/exec/waitpid`，建议在 WSL2 或 Linux/macOS 环境运行。
-
-=======
-# shamir-tpsi
-shamir-tpsi
->>>>>>> fc2f3e3969afd9702445d594ab796690e10489f6
