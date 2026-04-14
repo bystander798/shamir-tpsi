@@ -191,6 +191,41 @@ std::vector<NTL::ZZ_p> multipoint_evaluate(
     return values;
 }
 
+void pseudo_remainder_step(NTL::ZZ_pX &r0,
+                           NTL::ZZ_pX &r1,
+                           NTL::ZZ_pX &t0,
+                           NTL::ZZ_pX &t1) {
+    // When deg(r0) == deg(r1) == d > 0, a standard division has no quotient,
+    // so we use pseudo-remainder to establish a proper degree gap:
+    //   r0' = lc(r1) * r0 - lc(r0) * r1
+    // After this, deg(r0') < d = deg(r1), and the Euclidean invariant
+    // [[r0,r1],[t0,t1]] = [[r0_old,r1_old],[t0_old,t1_old]] × M holds
+    // with det(M) = lc(r1) != 0.  This is O(n) and only happens once.
+    if (NTL::IsZero(r1)) {
+        throw std::runtime_error("RSS reconstruction failed: degenerate remainder");
+    }
+    const NTL::ZZ_p lc_r0 = NTL::LeadCoeff(r0);
+    const NTL::ZZ_p lc_r1 = NTL::LeadCoeff(r1);
+    if (NTL::IsZero(lc_r0)) {
+        throw std::runtime_error("RSS reconstruction failed: zero leading coefficient");
+    }
+
+    NTL::ZZ_pX scaled_r0;
+    NTL::mul(scaled_r0, r1, lc_r0);        // lc(r1) * r0
+    NTL::ZZ_pX scaled_r1;
+    NTL::mul(scaled_r1, r0, lc_r1);        // lc(r0) * r1
+    NTL::ZZ_pX remainder = scaled_r0;
+    remainder -= scaled_r1;                  // lc(r1)*r0 - lc(r0)*r1
+
+    NTL::ZZ_pX t_next = t0 * lc_r1;
+    t_next -= t1 * lc_r0;                   // lc(r1)*t0 - lc(r0)*t1
+
+    r0 = r1;                                // shift: old r1 becomes new r0
+    r1 = remainder;                         // pseudo-remainder
+    t0 = t1;
+    t1 = t_next;
+}
+
 void reduce_half_gcd(NTL::ZZ_pX &r0,
                      NTL::ZZ_pX &r1,
                      NTL::ZZ_pX &t0,
@@ -198,15 +233,6 @@ void reduce_half_gcd(NTL::ZZ_pX &r0,
                      long q_bound,
                      long e_bound,
                      const HalfGcdTunables &tunables) {
-    // Ensure deg(r0) >= deg(r1) initially so that the Half-GCD fast path
-    // (XHalfGCD) is entered immediately rather than the O(n²) classical
-    // fallback.  When the two polynomials have equal degree the algorithm
-    // would otherwise iterate classical_step O(n) times before delta > 0.
-    if (NTL::deg(r0) < NTL::deg(r1)) {
-        std::swap(r0, r1);
-        std::swap(t0, t1);
-    }
-
     NTL::ZZ_pXMatrix transform;
     NTL::ZZ_pX tmp0;
     NTL::ZZ_pX tmp1;
@@ -220,9 +246,20 @@ void reduce_half_gcd(NTL::ZZ_pX &r0,
             throw std::runtime_error("RSS reconstruction failed: degenerate remainder");
         }
 
-        if (NTL::deg(r0) <= NTL::deg(r1)) {
-            classical_step(r0, r1, t0, t1);
+        if (NTL::deg(r0) == NTL::deg(r1)) {
+            // Special case: equal degrees.  Using classical_step here would give
+            // delta = 0 and want_drop = min_drop, but the resulting remainder
+            // only has degree d-1.  Repeating this O(n) step n times → O(n²).
+            // Instead, one pseudo-remainder step creates a degree gap and
+            // Half-GCD takes over from there in O(n log n).
+            pseudo_remainder_step(r0, r1, t0, t1);
             continue;
+        }
+
+        if (NTL::deg(r0) < NTL::deg(r1)) {
+            // Should not happen with correct initialization, but guard anyway.
+            std::swap(r0, r1);
+            std::swap(t0, t1);
         }
 
         const long deg_r1 = NTL::deg(r1);
